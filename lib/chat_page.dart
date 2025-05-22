@@ -15,28 +15,22 @@ class _ChatPageState extends State<ChatPage> {
   bool isLoading = false;
 
   Future<void> sendMessage(String input) async {
+    if (input.trim().isEmpty) return;
+
     setState(() {
       messages.add({'role': 'user', 'content': input});
       isLoading = true;
     });
 
     try {
-      final response = await getQwenResponseFromOpenRouter(input);
+      final response = await getOpenRouterResponse(input);
       setState(() {
         messages.add({'role': 'assistant', 'content': response});
       });
     } catch (e) {
-      String errorMessage = e.toString();
-      try {
-        final errorData = jsonDecode(e.toString());
-        errorMessage = errorData['error']['message'] ?? errorMessage;
-      } catch (_) {}
-
       setState(() {
-        messages.add({
-          'role': 'assistant',
-          'content': '❗ Terjadi kesalahan: $errorMessage'
-        });
+        messages
+            .add({'role': 'assistant', 'content': '❗ Terjadi kesalahan:\n$e'});
       });
     } finally {
       setState(() {
@@ -45,10 +39,13 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<String> getQwenResponseFromOpenRouter(String userInput) async {
-    const apiKey =
-        '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';
-    const url = 'https://openrouter.ai/api/v1/chat/completions ';
+  Future<String> getOpenRouterResponse(String userInput) async {
+    // 🔐 Ganti dengan API key kamu dari OpenRouter
+    const String apiKey =
+        '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';
+
+    const String url =
+        'https://openrouter.ai/api/v1/chat/completions'; // ✅ Sudah benar
 
     final headers = {
       'Content-Type': 'application/json',
@@ -56,25 +53,42 @@ class _ChatPageState extends State<ChatPage> {
     };
 
     final body = jsonEncode({
-      "model": "qwen/qwen-turbo",
+      "model":
+          "mistralai/mistral-7b-instruct:free", // ✅ Lebih stabil daripada qwen
       "messages": [
         {"role": "user", "content": userInput}
-      ]
+      ],
+      "temperature": 0.7,
+      "max_tokens": 200,
     });
 
-    // Debug permintaan
-    print('URL: $url');
-    print('Headers: $headers');
-    print('Body: $body');
+    // 📝 Log permintaan
+    print('➡️ Mengirim permintaan ke: $url');
+    print('📝 Headers: $headers');
+    print('📦 Body: $body');
 
-    final response =
-        await http.post(Uri.parse(url), headers: headers, body: body);
+    try {
+      final response =
+          await http.post(Uri.parse(url), headers: headers, body: body);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'];
-    } else {
-      throw Exception(response.body);
+      // 📡 Log respons server
+      print('📡 Status Code: ${response.statusCode}');
+      print('📄 Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final content = data['choices'][0]['message']['content'];
+
+        if (content == null || content.trim().isEmpty) {
+          return '⚠️ Model tidak menghasilkan jawaban.';
+        }
+
+        return content;
+      } else {
+        throw Exception('Server merespons dengan error: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('❌ Error mengirim permintaan: $e');
     }
   }
 
@@ -82,12 +96,10 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat AI Konsultasi Mental'),
+        title: const Text("AI Konsultasi Mental"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context); // Kembali ke halaman utama
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
@@ -108,15 +120,18 @@ class _ChatPageState extends State<ChatPage> {
                     color: isUser ? Colors.deepPurple[100] : Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(msg['content'] ?? ''),
+                  child: Text(
+                    '${msg['content']}',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 );
               },
             ),
           ),
           if (isLoading)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: const CircularProgressIndicator(),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Center(child: CircularProgressIndicator()),
             ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
@@ -125,7 +140,8 @@ class _ChatPageState extends State<ChatPage> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(
+                    onSubmitted: (value) => sendMessage(value),
+                    decoration: InputDecoration(
                       hintText: 'Tulis pesan...',
                       border: OutlineInputBorder(),
                     ),
