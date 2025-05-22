@@ -9,6 +9,7 @@ import 'kalkulator.dart';
 import 'kutipan_page.dart';
 import 'login_page.dart';
 import 'berita/home_page.dart';
+import 'pages/prediction_page.dart';
 // import 'diabet_predict.dart';
 
 class MainMenuPage extends StatelessWidget {
@@ -173,6 +174,17 @@ class MainMenuPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const HomePage()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.movie),
+                title: const Text('Prediksi Diabetes'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const PredictionPage()),
                   );
                 },
               ),
