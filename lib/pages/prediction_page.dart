@@ -1,9 +1,9 @@
-// prediction_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'bmi_calculator_page.dart'; // ⬅️ Import halaman BMI
-import '../constants.dart';
+import 'package:latihan/pages/bmi_calculator_page.dart';
+import '../chat_page.dart'; // ⬅️ Import ChatPage
+import '../constants.dart'; // Sesuaikan path jika diperlukan
 
 class PredictionPage extends StatefulWidget {
   const PredictionPage({super.key});
@@ -22,7 +22,6 @@ class _PredictionPageState extends State<PredictionPage> {
   String _prediction = '';
   double _probability = 0.0;
 
-  // 🔧 Perbaikan: Hapus spasi di akhir URL
   final String apiUrl = "https://592a-34-27-87-146.ngrok-free.app/predict";
 
   Future<void> sendPrediction() async {
@@ -229,8 +228,8 @@ class _PredictionPageState extends State<PredictionPage> {
                         ],
                       ),
               ),
-              SizedBox(height: 30),
-              if (_result != null)
+              if (_result != null) ...[
+                SizedBox(height: 20),
                 Container(
                   padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -256,10 +255,8 @@ class _PredictionPageState extends State<PredictionPage> {
                         ),
                       ),
                       Divider(),
-                      Text(
-                        "Kondisi: $_prediction",
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      Text("Kondisi: $_prediction",
+                          style: TextStyle(fontSize: 16)),
                       Text(
                         "Probabilitas: ${_probability.toStringAsFixed(4)}",
                         style: TextStyle(fontSize: 16),
@@ -267,6 +264,36 @@ class _PredictionPageState extends State<PredictionPage> {
                     ],
                   ),
                 ),
+                SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final bmi = double.tryParse(_bmiController.text) ?? 0.0;
+                    final ageDesc = ageOrder[_selectedAgeCode];
+                    final genHlthDesc = genHlthOrder[_selectedGenHlthCode];
+
+                    final prompt =
+                        "Anda dinyatakan sebagai '$_prediction' dengan probabilitas ${_probability.toStringAsFixed(4)}. "
+                        "BMI Anda adalah $bmi, usia $ageDesc, dan kesehatan umum $genHlthDesc. "
+                        "Berikan saran untuk mengelola kondisi ini.";
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatPage(initialMessage: prompt),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.chat_bubble_outline),
+                  label: Text("Konsultasi dengan AI"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple.shade300,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                )
+              ]
             ],
           ),
         ),

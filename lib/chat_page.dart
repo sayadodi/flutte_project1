@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final String? initialMessage; // 💬 Pesan awal dari PredictionPage
+
+  const ChatPage({super.key, this.initialMessage});
 
   @override
   _ChatPageState createState() => _ChatPageState();
@@ -13,6 +15,17 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   List<Map<String, String>> messages = [];
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        sendMessage(widget.initialMessage!);
+      });
+    }
+  }
 
   Future<void> sendMessage(String input) async {
     if (input.trim().isEmpty) return;
@@ -42,10 +55,9 @@ class _ChatPageState extends State<ChatPage> {
   Future<String> getOpenRouterResponse(String userInput) async {
     // 🔐 Ganti dengan API key kamu dari OpenRouter
     const String apiKey =
-        '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';
+        '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';
 
-    const String url =
-        'https://openrouter.ai/api/v1/chat/completions'; // ✅ Sudah benar
+    const String url = 'https://openrouter.ai/api/v1/chat/completions';
 
     final headers = {
       'Content-Type': 'application/json',
@@ -53,8 +65,7 @@ class _ChatPageState extends State<ChatPage> {
     };
 
     final body = jsonEncode({
-      "model":
-          "mistralai/mistral-7b-instruct:free", // ✅ Lebih stabil daripada qwen
+      "model": "mistralai/mistral-7b-instruct:free",
       "messages": [
         {"role": "user", "content": userInput}
       ],
@@ -62,7 +73,6 @@ class _ChatPageState extends State<ChatPage> {
       "max_tokens": 200,
     });
 
-    // 📝 Log permintaan
     print('➡️ Mengirim permintaan ke: $url');
     print('📝 Headers: $headers');
     print('📦 Body: $body');
@@ -71,7 +81,6 @@ class _ChatPageState extends State<ChatPage> {
       final response =
           await http.post(Uri.parse(url), headers: headers, body: body);
 
-      // 📡 Log respons server
       print('📡 Status Code: ${response.statusCode}');
       print('📄 Response Body: ${response.body}');
 
