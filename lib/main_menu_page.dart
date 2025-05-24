@@ -10,6 +10,7 @@ import 'kutipan_page.dart';
 import 'login_page.dart';
 import 'berita/home_page.dart';
 import 'pages/prediction_page.dart';
+import 'chat_history_page.dart';
 // import 'diabet_predict.dart';
 
 class MainMenuPage extends StatelessWidget {
@@ -201,6 +202,17 @@ class MainMenuPage extends StatelessWidget {
                     // Tampilkan dialog peringatan login
                     _showLoginAlert(context);
                   }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.login),
+                title: const Text('History Chat'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ChatHistoryPage()),
+                  );
                 },
               ),
               ListTile(

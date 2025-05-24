@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'chat_history_page.dart'; // Pastikan file ini dibuat
 
 class ChatPage extends StatefulWidget {
-  final String? initialMessage; // 💬 Pesan awal dari PredictionPage
+  final String? initialMessage;
 
   const ChatPage({super.key, this.initialMessage});
 
@@ -19,12 +21,15 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-
-    if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        sendMessage(widget.initialMessage!);
+    loadChatHistory().then((loadedMessages) {
+      setState(() {
+        messages = loadedMessages;
       });
-    }
+
+      if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
+        sendMessage(widget.initialMessage!);
+      }
+    });
   }
 
   Future<void> sendMessage(String input) async {
@@ -34,17 +39,20 @@ class _ChatPageState extends State<ChatPage> {
       messages.add({'role': 'user', 'content': input});
       isLoading = true;
     });
+    await saveChatHistory(messages);
 
     try {
       final response = await getOpenRouterResponse(input);
       setState(() {
         messages.add({'role': 'assistant', 'content': response});
       });
+      await saveChatHistory(messages);
     } catch (e) {
       setState(() {
         messages
             .add({'role': 'assistant', 'content': '❗ Terjadi kesalahan:\n$e'});
       });
+      await saveChatHistory(messages);
     } finally {
       setState(() {
         isLoading = false;
@@ -53,15 +61,12 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<String> getOpenRouterResponse(String userInput) async {
-    // 🔐 Ganti dengan API key kamu dari OpenRouter
     const String apiKey =
-        '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';
-
+        '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'; // Ganti API kamu
     const String url = 'https://openrouter.ai/api/v1/chat/completions';
 
     final headers = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Authorization': 'Bearer $apiKey',
     };
 
@@ -74,32 +79,31 @@ class _ChatPageState extends State<ChatPage> {
       "max_tokens": 1000,
     });
 
-    print('➡️ Mengirim permintaan ke: $url');
-    print('📝 Headers: $headers');
-    print('📦 Body: $body');
+    final response =
+        await http.post(Uri.parse(url), headers: headers, body: body);
 
-    try {
-      final response =
-          await http.post(Uri.parse(url), headers: headers, body: body);
-
-      print('📡 Status Code: ${response.statusCode}');
-      print('📄 Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['choices'][0]['message']['content'];
-
-        if (content == null || content.trim().isEmpty) {
-          return '⚠️ Model tidak menghasilkan jawaban.';
-        }
-
-        return content;
-      } else {
-        throw Exception('Server merespons dengan error: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('❌ Error mengirim permintaan: $e');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final content = data['choices'][0]['message']['content'];
+      return content ?? '⚠️ Model tidak menghasilkan jawaban.';
+    } else {
+      throw Exception('Server error: ${response.body}');
     }
+  }
+
+  Future<void> saveChatHistory(List<Map<String, String>> messages) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('chat_history', jsonEncode(messages));
+  }
+
+  Future<List<Map<String, String>>> loadChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString('chat_history');
+    if (jsonString != null) {
+      final List<dynamic> jsonList = jsonDecode(jsonString);
+      return jsonList.map((e) => Map<String, String>.from(e)).toList();
+    }
+    return [];
   }
 
   @override
@@ -111,6 +115,18 @@ class _ChatPageState extends State<ChatPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const ChatHistoryPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -131,8 +147,8 @@ class _ChatPageState extends State<ChatPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${msg['content']}',
-                    style: TextStyle(fontSize: 16),
+                    msg['content'] ?? '',
+                    style: const TextStyle(fontSize: 16),
                   ),
                 );
               },
@@ -151,7 +167,7 @@ class _ChatPageState extends State<ChatPage> {
                   child: TextField(
                     controller: _controller,
                     onSubmitted: (value) => sendMessage(value),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Tulis pesan...',
                       border: OutlineInputBorder(),
                     ),
