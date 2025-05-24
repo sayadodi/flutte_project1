@@ -22,7 +22,7 @@ class _PredictionPageState extends State<PredictionPage> {
   String _prediction = '';
   double _probability = 0.0;
 
-  final String apiUrl = "https://592a-34-27-87-146.ngrok-free.app/predict";
+  final String apiUrl = "https://9f33-34-132-197-37.ngrok-free.app/predict";
 
   Future<void> sendPrediction() async {
     setState(() {

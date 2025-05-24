@@ -55,12 +55,13 @@ class _ChatPageState extends State<ChatPage> {
   Future<String> getOpenRouterResponse(String userInput) async {
     // 🔐 Ganti dengan API key kamu dari OpenRouter
     const String apiKey =
-        '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';
+        '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';
 
     const String url = 'https://openrouter.ai/api/v1/chat/completions';
 
     final headers = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Authorization': 'Bearer $apiKey',
     };
 
@@ -70,7 +71,7 @@ class _ChatPageState extends State<ChatPage> {
         {"role": "user", "content": userInput}
       ],
       "temperature": 0.7,
-      "max_tokens": 200,
+      "max_tokens": 1000,
     });
 
     print('➡️ Mengirim permintaan ke: $url');
